@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Block Blast Ica 🧩</title>
+<style>
+  body {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: white;
+    font-family: Arial;
+  }
+
+  h1 {
+    margin-top: 20px;
+  }
+
+  #score {
+    margin: 10px;
+    font-size: 18px;
+  }
+
+  canvas {
+    background: #111;
+    border: 5px solid white;
+  }
+</style>
+</head>
+<body>
+
+<h1>🧩 Block Blast</h1>
+<div id="score">Score: 0</div>
+<canvas id="game" width="240" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const ROWS = 20;
+const COLS = 12;
+const SIZE = 20;
+
+let board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+let score = 0;
+
+// bentuk blok
+const SHAPES = [
+  [[1,1,1,1]],
+  [[1,1],[1,1]],
+  [[0,1,0],[1,1,1]],
+  [[1,1,0],[0,1,1]],
+  [[0,1,1],[1,1,0]]
+];
+
+let piece = createPiece();
+
+function createPiece() {
+  let shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+  return {
+    x: 4,
+    y: 0,
+    shape: shape
+  };
+}
+
+function draw() {
+  ctx.fillStyle = "#111";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // gambar papan
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      if (board[y][x]) {
+        ctx.fillStyle = "#00ffcc";
+        ctx.fillRect(x * SIZE, y * SIZE, SIZE, SIZE);
+      }
+    }
+  }
+
+  // gambar piece
+  ctx.fillStyle = "#ffcc00";
+  piece.shape.forEach((row, dy) => {
+    row.forEach((value, dx) => {
+      if (value) {
+        ctx.fillRect((piece.x + dx) * SIZE, (piece.y + dy) * SIZE, SIZE, SIZE);
+      }
+    });
+  });
+}
+
+function moveDown() {
+  piece.y++;
+  if (collision()) {
+    piece.y--;
+    merge();
+    piece = createPiece();
+    clearLines();
+  }
+}
+
+function move(dir) {
+  piece.x += dir;
+  if (collision()) piece.x -= dir;
+}
+
+function rotate() {
+  let newShape = piece.shape[0].map((_, i) =>
+    piece.shape.map(row => row[i]).reverse()
+  );
+  let oldShape = piece.shape;
+  piece.shape = newShape;
+  if (collision()) piece.shape = oldShape;
+}
+
+function collision() {
+  return piece.shape.some((row, dy) => {
+    return row.some((value, dx) => {
+      if (!value) return false;
+      let x = piece.x + dx;
+      let y = piece.y + dy;
+      return (
+        x < 0 || x >= COLS ||
+        y >= ROWS ||
+        (y >= 0 && board[y][x])
+      );
+    });
+  });
+}
+
+function merge() {
+  piece.shape.forEach((row, dy) => {
+    row.forEach((value, dx) => {
+      if (value) {
+        board[piece.y + dy][piece.x + dx] = 1;
+      }
+    });
+  });
+}
+
+function clearLines() {
+  for (let y = ROWS - 1; y >= 0; y--) {
+    if (board[y].every(cell => cell)) {
+      board.splice(y, 1);
+      board.unshift(Array(COLS).fill(0));
+      score++;
+      document.getElementById("score").innerText = "Score: " + score;
+    }
+  }
+}
+
+// kontrol
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowLeft") move(-1);
+  if (e.key === "ArrowRight") move(1);
+  if (e.key === "ArrowDown") moveDown();
+  if (e.key === "ArrowUp") rotate();
+});
+
+// loop game
+setInterval(() => {
+  moveDown();
+  draw();
+}, 400);
+</script>
+
+</body>
+</html>
